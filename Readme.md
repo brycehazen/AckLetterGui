@@ -1,5 +1,3 @@
-# Create the README content
-readme_content = """
 # Acknowledgment Letter and Mail Merge Tool
 
 ## Table of Contents
