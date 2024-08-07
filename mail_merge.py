@@ -87,7 +87,7 @@ class MailMerge:
         # Clean up individual merged files after combining
         self.cleanup_individual_files()
 
-        self.logger.log("Mail merge complete")
+        self.logger.log("Mail merge complete. '_completed.csv' is the data source for the merged docx")
 
     def _replace_placeholders(self, paragraph, data):
         for key, value in data.items():
