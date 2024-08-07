@@ -109,7 +109,7 @@ class MailMerge:
             doc.save(output_path)
 
             # Update progress
-            self.logger.log(f"Mail merged completed {index + 1} out of {len(df)}", update_only=True)
+            self.logger.log(f"Mail merging is working on {index + 1} out of {len(df)}", update_only=True)
 
         # Start the cleanup animation thread
         cleanup_thread = CleanupAnimationThread(self.logger)
@@ -126,7 +126,7 @@ class MailMerge:
             cleanup_thread.stop()
             cleanup_thread.join()
 
-        self.logger.log("Mail merge complete")
+        self.logger.log("the '_complete.csv' file is the data source for the merged docx.\nMail merge complete")
 
     def _replace_placeholders(self, paragraph, data):
         for key, value in data.items():
@@ -142,7 +142,8 @@ class MailMerge:
             doc = Document_compose(file)
             composer.append(doc)
 
-        output_path = os.path.join(self.output_dir, f"{os.path.basename(template_path).replace('.docx', '_MergeCompleted.docx')}")
+        base_name = os.path.basename(template_path)
+        output_path = os.path.join(self.output_dir, f"Merged_{base_name}")
         composer.save(output_path)
 
     def cleanup_individual_files(self):
