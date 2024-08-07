@@ -2,13 +2,23 @@ import pandas as pd
 import glob
 import os
 from tabulate import tabulate
+from PySide6.QtGui import QTextCursor
 
 class Logger:
-    def __init__(self, output_function):
-        self.output_function = output_function
+    def __init__(self, log_function, is_qtext_edit=False):
+        self.log_function = log_function
+        self.is_qtext_edit = is_qtext_edit
 
-    def log(self, message):
-        self.output_function(message)
+    def log(self, message, update_only=False):
+        if self.is_qtext_edit and update_only:
+            cursor = self.log_function.textCursor()
+            cursor.movePosition(QTextCursor.End)
+            cursor.select(QTextCursor.LineUnderCursor)
+            cursor.removeSelectedText()
+            cursor.insertText(message)
+        else:
+            self.log_function(message)
+
 
 class AckLetterProcessor:
     def __init__(self, input_dir, logger):
@@ -54,11 +64,13 @@ class AckLetterProcessor:
 
         # Print details of missing records in table format
         if missing_in_mail:
-            self.logger.log("\nRecords found in '_clean.csv' but not in '_mail.csv':")
+            self.logger.log("\nRecords found in _export_clean.csv' but not in '_mail.csv'")
+            self.logger.log("They have no giving information. They will not be final output.")
             self.logger.log(tabulate(missing_mail_data, headers=["ID", "Addressee"], tablefmt="grid"))
 
         if missing_in_clean:
-            self.logger.log("\nRecords found in '_mail.csv' but not in '_clean.csv':")
+            self.logger.log("\nRecords in '_mail.csv' but not in '_export_clean.csv':")
+            self.logger.log("They have giving information, but Add/Sal might incorrect. They will be in final output.")
             self.logger.log(tabulate(missing_clean_data, headers=["ID", "Addressee"], tablefmt="grid"))
 
     def process_files(self):
@@ -104,8 +116,8 @@ class AckLetterProcessor:
         # Use the encoding that was successful for saving
         output_path = os.path.join(self.input_dir, f"{pd.Timestamp.now().strftime('%Y-%m-%d')} OCA Ack_complete.csv")
         processed_data.to_csv(output_path, index=False, encoding=mail_encoding)
-
-        return f"Processed data saved to {output_path}"
+        self.logger.log("\n")
+        return f"Mailing data has been formatted. Ready for Word merge"
 
     def process_data(self, df_mail, df_clean, df_fidelis, fidelis_used):
         df_mail['Amount'] = df_mail['Amount'].astype(str).str.replace('[^\d.]', '', regex=True)
@@ -173,12 +185,3 @@ class AckLetterProcessor:
 
         return final_data
 
-def main():
-    input_dir = os.getcwd()  # Use the current working directory
-    logger = Logger(print)  # Use print function for logging
-    processor = AckLetterProcessor(input_dir, logger)
-    result = processor.process_files()
-    print(result)
-
-if __name__ == "__main__":
-    main()
