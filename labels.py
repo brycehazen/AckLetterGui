@@ -19,17 +19,15 @@ specialTitle = ['Dr.', 'The Honorable', 'Col.', 'Cmsgt. Ret.', 'Rev. Mr.', 'Deac
                 'Maj.', 'Most Reverend', 'Bishop Emeritus','Family of']
 
 # List of common titles
-commonTitles = ['Mrs.', 'Mr.', 'Ms.', 'Miss','Sr.','Sra.', 'Señor']       
+commonTitles = ['Mrs.', 'Mr.', 'Ms.', 'Miss','Sr.','Sra.', 'Señor'] 
 
 class LabelProcessor:
     def __init__(self, input_dir):
         self.input_dir = input_dir
     
     def process_files(self):
-        files = glob.glob(os.path.join(self.input_dir, '*.CSV')) + glob.glob(os.path.join(self.input_dir, '*.csv'))
+        files = glob.glob(os.path.join(self.input_dir, '*_export.CSV')) + glob.glob(os.path.join(self.input_dir, '*_export.csv'))
         for file in files:
-            if '_export' not in file:
-                continue
             try:
                 df = pd.read_csv(file, encoding='utf-8', low_memory=False, dtype=str)
                 file_encoding = 'utf-8'
@@ -38,10 +36,9 @@ class LabelProcessor:
                 file_encoding = 'ISO-8859-1'
 
             if not self.check_titles_and_genders(df):
-                print("Fix these errors before continuing.")
-                return
+                print("ERROR:")
+                return False
         
-
         def remove_data_based_on_condition1(row):
             # Check if 'CnBio_First_Name' is equal to 'CnSpSpBio_First_Name' and remove data if True
             if row['CnBio_First_Name'] == row['CnSpSpBio_First_Name']:
@@ -350,13 +347,12 @@ class LabelProcessor:
             return df
         df = add_bishop_fields(df)
 
-        if self.check_titles_and_genders(df):
-            base, ext = os.path.splitext(file)
-            new_file = base + '_clean' + ext
-            df.to_csv(f'{new_file}', index=False, encoding=file_encoding)
-            print("Label processing completed successfully.")
-        else:
-            print("Fix these errors before continuing.")
+
+        base, ext = os.path.splitext(file)
+        new_file = base + '_clean' + ext
+        df.to_csv(f'{new_file}', index=False, encoding=file_encoding)
+        print("\nAddress and Salutation processing completed. \n_export_clean.csv created")
+        return True
 
     def check_titles_and_genders(self, df):
         # Collect rows that fail the checks
@@ -378,7 +374,7 @@ class LabelProcessor:
                 failed_rows.append([row['CnBio_ID'], row['CnBio_Gender'], row['CnBio_Title_1'], row['CnSpSpBio_Gender'], row['CnSpSpBio_Title_1']])
 
         if failed_rows:
-            print("\nRows with Gender and Title inconsistencies:")
+            print("\nThese some of errors found '_export'. There are potentially more:")
             print(tb(failed_rows, headers=["CnBio_ID", "Gender", "Title", "SpSpGender", "SpSpTitle"], tablefmt="grid"))
             return False
         
