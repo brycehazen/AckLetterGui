@@ -351,7 +351,7 @@ class LabelProcessor:
         base, ext = os.path.splitext(file)
         new_file = base + '_clean' + ext
         df.to_csv(f'{new_file}', index=False, encoding=file_encoding)
-        print("\nAddress and Salutation processing completed. \n_export_clean.csv created")
+        print("\n_export_clean.csv created\nAddress and Salutation processing completed.")
         return True
 
     def check_titles_and_genders(self, df):
