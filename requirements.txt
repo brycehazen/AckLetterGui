@@ -1,0 +1,5 @@
+pandas
+python-docx
+tabulate
+PySide6
+docxcompose
