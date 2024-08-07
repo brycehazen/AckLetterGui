@@ -7,6 +7,37 @@ from docx import Document as Document_compose
 from PySide6.QtCore import QObject, Signal, QThread, QIODevice 
 from PySide6.QtWidgets import QTextEdit
 from PySide6.QtGui import QTextCursor
+import time
+from threading import Thread
+
+class CleanupAnimationThread(Thread):
+    def __init__(self, logger):
+        super().__init__()
+        self.logger = logger
+        self.running = True
+        self.cleanup_states = [
+            "Cleaning up mail merge files",
+            "Cleaning up mail merge files.",
+            "Cleaning up mail merge files..",
+            "Cleaning up mail merge files...",
+            "Cleaning up mail merge files....",
+            "Cleaning up mail merge files.....",
+            "Cleaning up mail merge files....",
+            "Cleaning up mail merge files...",
+            "Cleaning up mail merge files..",
+            "Cleaning up mail merge files."
+        ]
+
+    def run(self):
+        while self.running:
+            for state in self.cleanup_states:
+                if not self.running:
+                    break
+                self.logger.log(state, update_only=True)
+                time.sleep(0.5)  # Adjust the sleep time to control the speed of the animation
+
+    def stop(self):
+        self.running = False
 
 class Logger(QObject):
     log_signal = Signal(str, bool)
@@ -61,6 +92,7 @@ class MailMerge:
 
         self.logger.log(f"Starting mail merge process")
         self.logger.log(f"{len(df)} mail merges will be performed")
+
         self.logger.log(f"Beginning mail merge using '{os.path.basename(template_path)}'")
 
         # Process each row in the data
@@ -79,15 +111,22 @@ class MailMerge:
             # Update progress
             self.logger.log(f"Mail merged completed {index + 1} out of {len(df)}", update_only=True)
 
-        self.logger.log("Cleaning up mail merge files")
+        # Start the cleanup animation thread
+        cleanup_thread = CleanupAnimationThread(self.logger)
+        cleanup_thread.start()
 
-        # Combine individual documents into a single document
-        self.combine_documents(template_path)
+        try:
+            # Combine individual documents into a single document
+            self.combine_documents(template_path)
 
-        # Clean up individual merged files after combining
-        self.cleanup_individual_files()
+            # Clean up individual merged files after combining
+            self.cleanup_individual_files()
+        finally:
+            # Stop the cleanup animation thread
+            cleanup_thread.stop()
+            cleanup_thread.join()
 
-        self.logger.log("Mail merge complete. '_completed.csv' is the data source for the merged docx")
+        self.logger.log("Mail merge complete")
 
     def _replace_placeholders(self, paragraph, data):
         for key, value in data.items():
@@ -103,15 +142,13 @@ class MailMerge:
             doc = Document_compose(file)
             composer.append(doc)
 
-        base_name = os.path.basename(template_path)
-        output_path = os.path.join(self.output_dir, f"Merged_{base_name}")
+        output_path = os.path.join(self.output_dir, f"{os.path.basename(template_path).replace('.docx', '_MergeCompleted.docx')}")
         composer.save(output_path)
 
     def cleanup_individual_files(self):
         files = glob.glob(os.path.join(self.output_dir, 'merged_letter_*.docx'))
         for file in files:
             os.remove(file)
-
 
 def find_docx_template(input_dir):
     list_of_files = glob.glob(os.path.join(input_dir, '*.docx'))
