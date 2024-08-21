@@ -347,6 +347,23 @@ class LabelProcessor:
             return df
         df = add_bishop_fields(df)
 
+        # check notes for add/sal requests
+        def update_add_sal_request(df):
+            for index, row in df.iterrows():
+                # Iterate through note columns dynamically
+                note_types = [col for col in df.columns if '_Type' in col]
+                for note_type in note_types:
+                    note_description_col = note_type.replace('_Type', '_Description')
+                    if row[note_type] == 'Add/Sal Request':
+                        df.at[index, 'CnAdrSal_Addressee'] = row[note_description_col]
+                        df.at[index, 'CnAdrSal_Salutation'] = row[note_description_col]
+                        df.at[index, 'CnBio_Marital_status'] = 'Add/Sal Request'
+                        break  # Stop after finding the first matching Add/Sal Request
+
+            return df
+
+        # Apply the new function to the DataFrame
+        df = update_add_sal_request(df)
 
         base, ext = os.path.splitext(file)
         new_file = base + '_clean' + ext
